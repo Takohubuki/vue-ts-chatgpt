@@ -15,8 +15,8 @@
       </div>
     </div>
     <div class="chat-input">
-      <input type="text" placeholder="Ask something">
-      <button @click="makeChatCompletion(messages)">Send</button>
+      <input type="text" v-model="message" placeholder="Ask something">
+      <button @click="addMessage">Send</button>
     </div>
   </div>
 </div>
@@ -25,9 +25,9 @@
 <script setup lang="ts">
 // const props = defineProps<{}>();
 // import { reactive } from 'vue';
-import { makeChatCompletion } from '../openai'
+import chatRequest from '../server/openai';
 import { ref } from 'vue';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, ChatRequest, GPTRequestConfig, ChatResponse } from '../types';
 const messages: ChatMessage[] = [
   {
     role: 'user',
@@ -37,17 +37,48 @@ const messages: ChatMessage[] = [
     role: 'assistant',
     content: 'How can i do for you today?'
   },
-  {
-    role: 'user',
-    content: 'Can you tell me more of your services?'
-  },
-  {
-    role: 'assistant',
-    content: 'We provide services of web design, SEO and etc.'
-  }
 ]
 const messageList = ref<ChatMessage[]>(messages)
+const message = ref('')
 
+const addMessage = async () => {
+  // adding new messages to message list
+  messageList.value.push({
+    role: 'user',
+    content: message.value
+  });
+
+  // clear the input box
+  message.value = ''
+
+  // sending completion request
+  const response = await makeChatCompletion({
+    model: 'gpt-3.5-turbo',
+    messages: messages
+  })
+
+  messageList.value.push(response.choices[0].message)
+
+}
+
+const makeChatCompletion = (data: ChatRequest) => {
+  return chatRequest<ChatRequest, ChatResponse>({
+    url: '/chat/completions',
+    method: 'POST',
+    data,
+    interceptors: {
+      requestInterceptors(res: GPTRequestConfig) {
+        console.log('interface request interceptor');
+        return res;
+      },
+      responseInterceptors(result) {
+        console.log('interface response interceptor');
+        
+        return result;
+      }
+    }
+  })
+}
 </script>
 
 <style scoped lang="scss">
