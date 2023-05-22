@@ -7,16 +7,16 @@
     <div class="chat-box">
       <div v-for="message, index in messageList" :key="index">
         <div v-if="message.role=='assistant'" class="chat-message">
-          <p>{{ message.content }}</p>
+          <div v-html="md.render(message.content)"></div>
         </div>
         <div class="chat-message user" v-else>
-          <p>{{ message.content }}</p>
+          <div v-html="md.render(message.content)"></div>
         </div>
       </div>
     </div>
     <div class="chat-input">
       <input type="text" v-model="message" placeholder="Ask something">
-      <button @click="addMessage">Send</button>
+      <button @click="addMessage" @keypress.enter="addMessage">Send</button>
     </div>
   </div>
 </div>
@@ -27,6 +27,7 @@
 // import { reactive } from 'vue';
 import chatRequest from '../server/openai';
 import { ref } from 'vue';
+import { md } from '../server/markdown';
 import type { ChatMessage, ChatRequest, GPTRequestConfig, ChatResponse } from '../types';
 const messages: ChatMessage[] = [
   {
@@ -41,6 +42,12 @@ const messages: ChatMessage[] = [
 const messageList = ref<ChatMessage[]>(messages)
 const message = ref('')
 
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    addMessage();
+  }
+})
+// button event
 const addMessage = async () => {
   // adding new messages to message list
   messageList.value.push({
@@ -61,6 +68,7 @@ const addMessage = async () => {
 
 }
 
+// Chat completion request implement
 const makeChatCompletion = (data: ChatRequest) => {
   return chatRequest<ChatRequest, ChatResponse>({
     url: '/chat/completions',
@@ -79,6 +87,7 @@ const makeChatCompletion = (data: ChatRequest) => {
     }
   })
 }
+
 </script>
 
 <style scoped lang="scss">
@@ -91,12 +100,13 @@ const makeChatCompletion = (data: ChatRequest) => {
 .header {
   text-align: center;
   margin-bottom: 20px;
+  height: 4vh;
 }
 
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 500px;
+  height: 88vh;
   border: 1px solid #ccc;
   border-radius: 5px;
   overflow: hidden;

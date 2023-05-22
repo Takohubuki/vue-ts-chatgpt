@@ -45,12 +45,12 @@ const request = new GPTRequest({
         }
     }
 })
-const ChatRequest = <D, T = any> (config: ChatRequestConfig<D>) => {
+const ChatRequest = <D, T = ChatResponse> (config: ChatRequestConfig<D>) => {
     const { method = 'POST'} = config;
     if (method === 'get' || method === 'GET') {
         config.params = config.data
     }
-    return request.request<ChatResponse>(config);
+    return request.request<T>(config);
 }
 
 export default ChatRequest;

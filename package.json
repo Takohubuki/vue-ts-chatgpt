@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "ant-design-vue": "^3.2.20",
+    "highlight.js": "^11.8.0",
+    "markdown-it": "^13.0.1",
     "openai": "^3.2.1",
     "sass": "^1.62.1",
     "vue": "^3.2.47"
   },
   "devDependencies": {
+    "@types/markdown-it": "^12.2.3",
     "@types/node": "^20.1.1",
     "@vitejs/plugin-vue": "^4.1.0",
     "typescript": "^5.0.2",
