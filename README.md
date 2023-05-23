@@ -3,8 +3,10 @@
 ## **Todos**
 - <del>basic chat<def>
 - <del>expend the chat box to the size of whole screen<del>
-- auto scrolling
+- <del>auto scrolling<del>
 - <del>markdown output<del>
 - delete or new chat
 - prompts
 - streaming response
+- error information
+- setting bar(hyperparameters, open ai apikey)

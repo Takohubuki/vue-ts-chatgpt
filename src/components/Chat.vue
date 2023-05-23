@@ -4,36 +4,34 @@
     <h1>Chatbot Playground</h1>
   </div>
   <div class="chat-container">
-    <div class="chat-box">
+    <div class="chat-box" ref="autoScroll">
       <div v-for="message, index in messageList" :key="index">
-        <div v-if="message.role=='assistant'" class="chat-message">
+        <div v-if="message.role=='assistant' && message.content!==''" class="chat-message">
           <div v-html="md.render(message.content)"></div>
         </div>
-        <div class="chat-message user" v-else>
+        <div v-else-if="message.role==='user' && message.content!==''" class="chat-message user">
           <div v-html="md.render(message.content)"></div>
         </div>
       </div>
     </div>
     <div class="chat-input">
       <input type="text" v-model="message" placeholder="Ask something">
-      <button @click="addMessage" @keypress.enter="addMessage">Send</button>
+      <button v-if="pendding" @click="cancelChatCompletionRequest">Cancel</button>
+      <button v-else @click="addMessage" @keypress.enter="addMessage">Send</button>
     </div>
   </div>
 </div>
 </template>
 
 <script setup lang="ts">
-// const props = defineProps<{}>();
-// import { reactive } from 'vue';
 import chatRequest from '../server/openai';
-import { ref } from 'vue';
+import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
 import type { ChatMessage, ChatRequest, GPTRequestConfig, ChatResponse } from '../types';
+
+
+const pendding = ref(false)
 const messages: ChatMessage[] = [
-  {
-    role: 'user',
-    content: 'Hello!'
-  },
   {
     role: 'assistant',
     content: 'How can i do for you today?'
@@ -42,6 +40,7 @@ const messages: ChatMessage[] = [
 const messageList = ref<ChatMessage[]>(messages)
 const message = ref('')
 
+// add enter event to button
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     addMessage();
@@ -49,6 +48,8 @@ document.addEventListener('keydown', (e) => {
 })
 // button event
 const addMessage = async () => {
+  // auto scrolling
+  // handleScrollBottom()
   // adding new messages to message list
   messageList.value.push({
     role: 'user',
@@ -63,9 +64,23 @@ const addMessage = async () => {
     model: 'gpt-3.5-turbo',
     messages: messages
   })
+  messageList.value.push(response.choices[0].message);
+}
 
-  messageList.value.push(response.choices[0].message)
+onUpdated(() => {
+  handleScrollBottom();
+})
 
+// keep the scroll bar to the bottom
+const autoScroll = ref()
+const handleScrollBottom = () => {
+  nextTick(() => {
+    autoScroll.value.scrollTop = autoScroll.value.scrollHeight;
+  })
+}
+
+const cancelChatCompletionRequest = () => {
+  console.log('canceling chat completion');
 }
 
 // Chat completion request implement
@@ -77,11 +92,13 @@ const makeChatCompletion = (data: ChatRequest) => {
     interceptors: {
       requestInterceptors(res: GPTRequestConfig) {
         console.log('interface request interceptor');
+        pendding.value = true
         return res;
       },
       responseInterceptors(result) {
         console.log('interface response interceptor');
-        
+        pendding.value = false
+        // handleScrollBottom()
         return result;
       }
     }
@@ -115,7 +132,7 @@ const makeChatCompletion = (data: ChatRequest) => {
 .chat-box {
   flex: 1;
   padding: 20px;
-  overflow-y: scroll;
+  overflow-y: auto;
 }
 
 .chat-message {
