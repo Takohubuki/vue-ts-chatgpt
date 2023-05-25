@@ -6,10 +6,10 @@
   <div class="chat-container">
     <div class="chat-box" ref="autoScroll">
       <div v-for="message, index in messageList" :key="index">
-        <div v-if="message.role=='assistant' && message.content!==''" class="chat-message">
+        <div v-if="message.role=='assistant'" class="chat-message">
           <div v-html="md.render(message.content)"></div>
         </div>
-        <div v-else-if="message.role==='user' && message.content!==''" class="chat-message user">
+        <div v-else-if="message.role==='user'" class="chat-message user">
           <div v-html="md.render(message.content)"></div>
         </div>
       </div>
@@ -48,16 +48,16 @@ document.addEventListener('keydown', (e) => {
 })
 // button event
 const addMessage = async () => {
-  // auto scrolling
-  // handleScrollBottom()
-  // adding new messages to message list
-  messageList.value.push({
-    role: 'user',
-    content: message.value
-  });
+  if (message.value !== '') {
+    // adding new messages to message list
+    messageList.value.push({
+      role: 'user',
+      content: message.value
+    });
 
-  // clear the input box
-  message.value = ''
+    // clear the input box
+    message.value = ''
+  }
 
   // sending completion request
   const response = await makeChatCompletion({
@@ -79,6 +79,8 @@ const handleScrollBottom = () => {
   })
 }
 
+// canceling request 
+// TODO
 const cancelChatCompletionRequest = () => {
   console.log('canceling chat completion');
 }
