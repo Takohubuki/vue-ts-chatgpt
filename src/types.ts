@@ -55,11 +55,39 @@ export interface ChatRequest {
     user?: String
 }
 
-export interface ChatResponse {
+export interface GPTResponse {
+    status: number,
+    data?: ChatResponseData
+    error?: GPTResponseError
+}
+
+export interface ChatResponseData {
     id: string,
     object: string,
     created: number,
     model: string,
     choices: ChatResponseMessage[],
     usage: Usage
+}
+
+interface GPTResponseError {
+    message: string,
+    code: number | null,
+    type: string,
+    param: string | null
+}
+
+export class GPTError extends Error {
+    message: string;
+
+    constructor(statusCode: number) {
+        super('');
+        if (statusCode === 401) {
+            this.message = '无效认证，请检查您的API KEY';
+        } else if (statusCode === 429) {
+            this.message = '请放慢对话速度！';
+        } else {
+            this.message = '';
+        }
+    }
 }

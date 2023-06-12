@@ -6,10 +6,10 @@
   <div class="chat-container">
     <div class="chat-box" ref="autoScroll">
       <div v-for="message, index in messageList" :key="index">
-        <div v-if="message.role=='assistant' && message.content!==''" class="chat-message">
+        <div v-if="message.role=='assistant'" class="chat-message">
           <div v-html="md.render(message.content)"></div>
         </div>
-        <div v-else-if="message.role==='user' && message.content!==''" class="chat-message user">
+        <div v-else-if="message.role==='user'" class="chat-message user">
           <div v-html="md.render(message.content)"></div>
         </div>
       </div>
@@ -27,7 +27,9 @@
 import chatRequest from '../server/openai';
 import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
-import type { ChatMessage, ChatRequest, GPTRequestConfig, ChatResponse } from '../types';
+import type { ChatResponseData, ChatMessage, ChatRequest, GPTRequestConfig } from '../types';
+import { notification } from 'ant-design-vue';
+import { GPTError } from '../types';
 
 
 const pendding = ref(false)
@@ -48,25 +50,41 @@ document.addEventListener('keydown', (e) => {
 })
 // button event
 const addMessage = async () => {
-  // auto scrolling
-  // handleScrollBottom()
-  // adding new messages to message list
-  messageList.value.push({
-    role: 'user',
-    content: message.value
-  });
+  if (message.value !== '') {
+    // adding new messages to message list
+    messageList.value.push({
+      role: 'user',
+      content: message.value
+    });
 
-  // clear the input box
-  message.value = ''
+    // clear the input box
+    message.value = ''
+  }
 
   // sending completion request
-  const response = await makeChatCompletion({
+  await makeChatCompletion({
     model: 'gpt-3.5-turbo',
     messages: messages
   })
-  messageList.value.push(response.choices[0].message);
+  // }).then((response: GPTResponse) => {
+  //   console.log(response);
+  //   messageList.value.push(response.data.choices[0].message);
+  // }).catch((error) => {
+  //   console.log(error)
+  //   const error_message = error.message
+  //   openNotification(error_message);
+  // })
+  
 }
 
+const openNotification = (notification_message: string) => {
+  notification['error']({
+    message: 'Error!',
+    description: notification_message
+  });
+};
+
+// auto scrolling when component is updated
 onUpdated(() => {
   handleScrollBottom();
 })
@@ -79,13 +97,15 @@ const handleScrollBottom = () => {
   })
 }
 
+// canceling request 
+// TODO
 const cancelChatCompletionRequest = () => {
   console.log('canceling chat completion');
 }
 
 // Chat completion request implement
 const makeChatCompletion = (data: ChatRequest) => {
-  return chatRequest<ChatRequest, ChatResponse>({
+  return chatRequest<ChatRequest, ChatResponseData>({
     url: '/chat/completions',
     method: 'POST',
     data,
@@ -95,15 +115,40 @@ const makeChatCompletion = (data: ChatRequest) => {
         pendding.value = true
         return res;
       },
-      responseInterceptors(result) {
+      responseInterceptors(result: any) {
         console.log('interface response interceptor');
-        pendding.value = false
-        // handleScrollBottom()
+        pendding.value = false;
+
+        if (result.response) {
+          // handlingExceptions(result);
+          throw new GPTError(result.response.status);
+        }
+        handleScrollBottom()
         return result;
       }
     }
+  }).then((chat_response: ChatResponseData) => {
+    console.log('entering then()');
+    // if (chat_response.status != 200) {
+    //   throw Error('error!')
+    // }
+    messageList.value.push(chat_response.choices[0].message);
+  }).catch((err) => {
+    // console.log(err.message);
+    openNotification(err.message);
   })
 }
+
+// const handlingExceptions = (result: any) => {
+  // console.log(result.response)
+
+  // handling status that is not 200
+  // if (result.response.status !== 200) {
+  //   const err_info = result.response.data.error;
+  //   console.log(err_info);
+  //   throw Error(err_info.code);
+  // }
+// }
 
 </script>
 
