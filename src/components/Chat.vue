@@ -27,8 +27,9 @@
 import chatRequest from '../server/openai';
 import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
-import type { ChatMessage, ChatRequest, GPTRequestConfig, GPTResponse } from '../types';
+import type { ChatResponseData, ChatMessage, ChatRequest, GPTRequestConfig } from '../types';
 import { notification } from 'ant-design-vue';
+import { GPTError } from '../types';
 
 
 const pendding = ref(false)
@@ -104,7 +105,7 @@ const cancelChatCompletionRequest = () => {
 
 // Chat completion request implement
 const makeChatCompletion = (data: ChatRequest) => {
-  return chatRequest<ChatRequest, GPTResponse>({
+  return chatRequest<ChatRequest, ChatResponseData>({
     url: '/chat/completions',
     method: 'POST',
     data,
@@ -116,32 +117,38 @@ const makeChatCompletion = (data: ChatRequest) => {
       },
       responseInterceptors(result: any) {
         console.log('interface response interceptor');
-        pendding.value = false
-        console.log(result.response)
-        // const gpt_response: GPTResponse = result.response
+        pendding.value = false;
 
-        if (result.response.status != 200) {
-          const err_info = result.response.data.error;
-          console.log(err_info);
-          
-          throw Error(err_info.code);
+        if (result.response) {
+          // handlingExceptions(result);
+          throw new GPTError(result.response.status);
         }
-
         handleScrollBottom()
         return result;
       }
     }
-  }).then((chat_response: GPTResponse) => {
+  }).then((chat_response: ChatResponseData) => {
     console.log('entering then()');
     // if (chat_response.status != 200) {
     //   throw Error('error!')
     // }
-    // messageList.value.push(chat_response.data.choices[0].message);
+    messageList.value.push(chat_response.choices[0].message);
   }).catch((err) => {
-    console.log(err.message);
+    // console.log(err.message);
     openNotification(err.message);
   })
 }
+
+// const handlingExceptions = (result: any) => {
+  // console.log(result.response)
+
+  // handling status that is not 200
+  // if (result.response.status !== 200) {
+  //   const err_info = result.response.data.error;
+  //   console.log(err_info);
+  //   throw Error(err_info.code);
+  // }
+// }
 
 </script>
 
