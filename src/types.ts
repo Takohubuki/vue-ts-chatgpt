@@ -55,11 +55,24 @@ export interface ChatRequest {
     user?: String
 }
 
-export interface ChatResponse {
+export interface GPTResponse {
+    status: number,
+    data?: ChatResponseData
+    error?: GPTResponseError
+}
+
+interface ChatResponseData {
     id: string,
     object: string,
     created: number,
     model: string,
     choices: ChatResponseMessage[],
     usage: Usage
+}
+
+interface GPTResponseError {
+    message: string,
+    code: number | null,
+    type: string,
+    param: string | null
 }

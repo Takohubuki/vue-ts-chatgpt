@@ -27,7 +27,8 @@
 import chatRequest from '../server/openai';
 import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
-import type { ChatMessage, ChatRequest, GPTRequestConfig, ChatResponse } from '../types';
+import type { ChatMessage, ChatRequest, GPTRequestConfig, GPTResponse } from '../types';
+import { notification } from 'ant-design-vue';
 
 
 const pendding = ref(false)
@@ -60,13 +61,29 @@ const addMessage = async () => {
   }
 
   // sending completion request
-  const response = await makeChatCompletion({
+  await makeChatCompletion({
     model: 'gpt-3.5-turbo',
     messages: messages
   })
-  messageList.value.push(response.choices[0].message);
+  // }).then((response: GPTResponse) => {
+  //   console.log(response);
+  //   messageList.value.push(response.data.choices[0].message);
+  // }).catch((error) => {
+  //   console.log(error)
+  //   const error_message = error.message
+  //   openNotification(error_message);
+  // })
+  
 }
 
+const openNotification = (notification_message: string) => {
+  notification['error']({
+    message: 'Error!',
+    description: notification_message
+  });
+};
+
+// auto scrolling when component is updated
 onUpdated(() => {
   handleScrollBottom();
 })
@@ -87,7 +104,7 @@ const cancelChatCompletionRequest = () => {
 
 // Chat completion request implement
 const makeChatCompletion = (data: ChatRequest) => {
-  return chatRequest<ChatRequest, ChatResponse>({
+  return chatRequest<ChatRequest, GPTResponse>({
     url: '/chat/completions',
     method: 'POST',
     data,
@@ -97,13 +114,32 @@ const makeChatCompletion = (data: ChatRequest) => {
         pendding.value = true
         return res;
       },
-      responseInterceptors(result) {
+      responseInterceptors(result: any) {
         console.log('interface response interceptor');
         pendding.value = false
-        // handleScrollBottom()
+        console.log(result.response)
+        // const gpt_response: GPTResponse = result.response
+
+        if (result.response.status != 200) {
+          const err_info = result.response.data.error;
+          console.log(err_info);
+          
+          throw Error(err_info.code);
+        }
+
+        handleScrollBottom()
         return result;
       }
     }
+  }).then((chat_response: GPTResponse) => {
+    console.log('entering then()');
+    // if (chat_response.status != 200) {
+    //   throw Error('error!')
+    // }
+    // messageList.value.push(chat_response.data.choices[0].message);
+  }).catch((err) => {
+    console.log(err.message);
+    openNotification(err.message);
   })
 }
 
