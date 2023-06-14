@@ -24,15 +24,17 @@
 </template>
 
 <script setup lang="ts">
-import chatRequest from '../server/openai';
+import chatRequest, { makeChatCompletionStream } from '../server/openai';
 import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
-import type { ChatResponseData, ChatMessage, ChatRequest, GPTRequestConfig } from '../types';
+import type { ChatMessage, ChatRequest, GPTRequestConfig } from '../types';
 import { notification } from 'ant-design-vue';
 import { GPTError } from '../types';
 
 
-const pendding = ref(false)
+const response_type = 'stream';
+const decoder = new TextDecoder('utf-8');
+const pendding = ref(false);
 const messages: ChatMessage[] = [
   {
     role: 'assistant',
@@ -61,20 +63,31 @@ const addMessage = async () => {
     message.value = ''
   }
 
-  // sending completion request
-  await makeChatCompletion({
-    model: 'gpt-3.5-turbo',
-    messages: messages
-  })
-  // }).then((response: GPTResponse) => {
-  //   console.log(response);
-  //   messageList.value.push(response.data.choices[0].message);
-  // }).catch((error) => {
-  //   console.log(error)
-  //   const error_message = error.message
-  //   openNotification(error_message);
-  // })
-  
+  try {
+    pendding.value = true;
+    const response = await makeChatCompletionStream(messageList.value);
+    // sending completion request
+    // const response = await makeChatCompletion({
+    //   model: 'gpt-3.5-turbo',
+    //   messages: messages
+    // });
+
+    messageList.value.push({
+      role: 'assistant',
+      content: ''
+    });
+
+    // console.log(response instanceof Response);
+    console.log(response);
+    const { body } = response;
+    if ( body ) {
+      const reader = body.getReader();
+      await readerStream(reader);
+    }
+  } catch (err: any) {
+    openNotification(err.message);
+    return;
+  }
 }
 
 const openNotification = (notification_message: string) => {
@@ -105,9 +118,10 @@ const cancelChatCompletionRequest = () => {
 
 // Chat completion request implement
 const makeChatCompletion = (data: ChatRequest) => {
-  return chatRequest<ChatRequest, ChatResponseData>({
+  return chatRequest<ChatRequest, Response>({
     url: '/chat/completions',
     method: 'POST',
+    responseType: response_type,
     data,
     interceptors: {
       requestInterceptors(res: GPTRequestConfig) {
@@ -119,6 +133,7 @@ const makeChatCompletion = (data: ChatRequest) => {
         console.log('interface response interceptor');
         pendding.value = false;
 
+        // console.log(result instanceof Response);
         if (result.response) {
           // handlingExceptions(result);
           throw new GPTError(result.response.status);
@@ -127,16 +142,41 @@ const makeChatCompletion = (data: ChatRequest) => {
         return result;
       }
     }
-  }).then((chat_response: ChatResponseData) => {
-    console.log('entering then()');
-    // if (chat_response.status != 200) {
-    //   throw Error('error!')
-    // }
-    messageList.value.push(chat_response.choices[0].message);
-  }).catch((err) => {
-    // console.log(err.message);
-    openNotification(err.message);
-  })
+  });
+  // .catch((err) => {
+  //   // console.log(err.message);
+  //   openNotification(err.message);
+  // })
+}
+
+const readerStream = async (
+  reader: ReadableStreamDefaultReader<Uint8Array>
+) => {
+  let partial_line = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    const decoded_text = decoder.decode(value, { stream: true });
+    
+    const chunk = partial_line + decoded_text;
+    
+    const new_line = chunk.split(/\r?\n/);
+
+    partial_line = new_line.pop() ?? '';
+
+    for (const line of new_line) {
+      if (line.length === 0) continue;
+      if (line.startsWith(':')) continue;
+      if (line === 'data: [DONE]') return;
+
+      // console.log(line);
+      const json = JSON.parse(line.substring(6));
+      const content = json.choices[0].delta.content ?? '';
+      messageList.value[messageList.value.length - 1].content += content;
+    }
+  }
 }
 
 // const handlingExceptions = (result: any) => {

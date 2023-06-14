@@ -7,6 +7,7 @@
 - <del>markdown output<del>
 - delete or new chat
 - prompts
-- streaming response
-- error information
+- <del>streaming response<del>
+- <del>error information<del>
 - setting bar(hyperparameters, open ai apikey)
+- pendding status animel

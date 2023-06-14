@@ -36,7 +36,7 @@ class GPTRequest {
         this.instance.interceptors.response.use(
             (res: AxiosResponse) => {
                 console.log('global response interceptor');
-                console.log(res.status);
+                // console.log(res.status);
                 return res.data;
             },
             (err: any) => err
@@ -55,6 +55,7 @@ class GPTRequest {
                     res = config.interceptors.responseInterceptors<T>(res);
                 }
 
+                console.log(res instanceof Response);
                 resolve(res);
             }).catch((err: any) => {
                 reject(err);
