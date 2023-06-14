@@ -27,8 +27,10 @@
 import { makeChatCompletionStream } from '../server/openai';
 import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
-import type { ChatMessage} from '../types';
+import type { ChatMessage } from '../types';
 import { notification } from 'ant-design-vue';
+import { GPTError } from '../types';
+
 
 const decoder = new TextDecoder('utf-8');
 const pendding = ref(false);
@@ -69,14 +71,17 @@ const addMessage = async () => {
     //   messages: messages
     // });
 
+
+    const { body, status } = response;
+    if ( status !== 200 ) {
+      throw new GPTError(status);
+    }
+
     messageList.value.push({
       role: 'assistant',
       content: ''
     });
 
-    // console.log(response instanceof Response);
-    console.log(response);
-    const { body } = response;
     if ( body ) {
       const reader = body.getReader();
       await readerStream(reader);
@@ -84,7 +89,8 @@ const addMessage = async () => {
     pendding.value = false;
   } catch (err: any) {
     openNotification(err.message);
-    return;
+  } finally {
+    pendding.value = false;
   }
 }
 

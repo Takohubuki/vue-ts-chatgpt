@@ -19,7 +19,7 @@ export async function makeChatCompletionStream(messageList: ChatMessage[]) {
                 messages: messageList
             })
         });
-        console.log(response);
+        // console.log(response);
         return response;
     } catch (error) {
         throw error;
