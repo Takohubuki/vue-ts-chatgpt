@@ -24,15 +24,14 @@
 </template>
 
 <script setup lang="ts">
-import chatRequest, { makeChatCompletionStream } from '../server/openai';
+import { makeChatCompletionStream } from '../server/openai';
 import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
-import type { ChatMessage, ChatRequest, GPTRequestConfig } from '../types';
+import type { ChatMessage} from '../types';
 import { notification } from 'ant-design-vue';
-import { GPTError } from '../types';
+// import { GPTError } from '../types';
 
 
-const response_type = 'stream';
 const decoder = new TextDecoder('utf-8');
 const pendding = ref(false);
 const messages: ChatMessage[] = [
@@ -78,12 +77,13 @@ const addMessage = async () => {
     });
 
     // console.log(response instanceof Response);
-    console.log(response);
+    // console.log(response);
     const { body } = response;
     if ( body ) {
       const reader = body.getReader();
       await readerStream(reader);
     }
+    pendding.value = false;
   } catch (err: any) {
     openNotification(err.message);
     return;
@@ -117,37 +117,33 @@ const cancelChatCompletionRequest = () => {
 }
 
 // Chat completion request implement
-const makeChatCompletion = (data: ChatRequest) => {
-  return chatRequest<ChatRequest, Response>({
-    url: '/chat/completions',
-    method: 'POST',
-    responseType: response_type,
-    data,
-    interceptors: {
-      requestInterceptors(res: GPTRequestConfig) {
-        console.log('interface request interceptor');
-        pendding.value = true
-        return res;
-      },
-      responseInterceptors(result: any) {
-        console.log('interface response interceptor');
-        pendding.value = false;
+// const makeChatCompletion = (data: ChatRequest) => {
+//   return chatRequest<ChatRequest, Response>({
+//     url: '/chat/completions',
+//     method: 'POST',
+//     responseType: response_type,
+//     data,
+//     interceptors: {
+//       requestInterceptors(res: GPTRequestConfig) {
+//         console.log('interface request interceptor');
+//         pendding.value = true
+//         return res;
+//       },
+//       responseInterceptors(result: any) {
+//         console.log('interface response interceptor');
+//         pendding.value = false;
 
-        // console.log(result instanceof Response);
-        if (result.response) {
-          // handlingExceptions(result);
-          throw new GPTError(result.response.status);
-        }
-        handleScrollBottom()
-        return result;
-      }
-    }
-  });
-  // .catch((err) => {
-  //   // console.log(err.message);
-  //   openNotification(err.message);
-  // })
-}
+//         // console.log(result instanceof Response);
+//         if (result.response) {
+//           // handlingExceptions(result);
+//           throw new GPTError(result.response.status);
+//         }
+//         handleScrollBottom()
+//         return result;
+//       }
+//     }
+//   });
+// }
 
 const readerStream = async (
   reader: ReadableStreamDefaultReader<Uint8Array>
