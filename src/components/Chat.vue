@@ -81,6 +81,7 @@ const addMessage = async () => {
       const reader = body.getReader();
       await readerStream(reader);
     }
+    pendding.value = false;
   } catch (err: any) {
     openNotification(err.message);
     return;
