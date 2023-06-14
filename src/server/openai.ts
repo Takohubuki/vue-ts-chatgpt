@@ -15,7 +15,7 @@ export async function makeChatCompletionStream(messageList: ChatMessage[]) {
             },
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
-                // stream: true,
+                stream: true,
                 messages: messageList
             })
         });
