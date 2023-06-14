@@ -85,7 +85,7 @@ export class GPTError extends Error {
         if (statusCode === 401) {
             this.message = '无效认证，请检查您的API KEY';
         } else if (statusCode === 429) {
-            this.message = '请放慢对话速度！';
+            this.message = '达到对话速度限制，请在20s后重试。';
         } else {
             this.message = '';
         }
