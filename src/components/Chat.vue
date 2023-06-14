@@ -6,10 +6,10 @@
   <div class="chat-container">
     <div class="chat-box" ref="autoScroll">
       <div v-for="message, index in messageList" :key="index">
-        <div v-if="message.role=='assistant' && message.content!==''" class="chat-message">
+        <div v-if="message.role=='assistant'" class="chat-message">
           <div v-html="md.render(message.content)"></div>
         </div>
-        <div v-else-if="message.role==='user' && message.content!==''" class="chat-message user">
+        <div v-else-if="message.role==='user'" class="chat-message user">
           <div v-html="md.render(message.content)"></div>
         </div>
       </div>
@@ -24,13 +24,16 @@
 </template>
 
 <script setup lang="ts">
-import chatRequest from '../server/openai';
+import { makeChatCompletionStream } from '../server/openai';
 import { nextTick, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
-import type { ChatMessage, ChatRequest, GPTRequestConfig, ChatResponse } from '../types';
+import { GPTError, type ChatMessage} from '../types';
+import { notification } from 'ant-design-vue';
+// import { GPTError } from '../types';
 
 
-const pendding = ref(false)
+const decoder = new TextDecoder('utf-8');
+const pendding = ref(false);
 const messages: ChatMessage[] = [
   {
     role: 'assistant',
@@ -48,25 +51,56 @@ document.addEventListener('keydown', (e) => {
 })
 // button event
 const addMessage = async () => {
-  // auto scrolling
-  // handleScrollBottom()
-  // adding new messages to message list
-  messageList.value.push({
-    role: 'user',
-    content: message.value
-  });
+  if (message.value !== '') {
+    // adding new messages to message list
+    messageList.value.push({
+      role: 'user',
+      content: message.value
+    });
 
-  // clear the input box
-  message.value = ''
+    // clear the input box
+    message.value = ''
+  }
 
-  // sending completion request
-  const response = await makeChatCompletion({
-    model: 'gpt-3.5-turbo',
-    messages: messages
-  })
-  messageList.value.push(response.choices[0].message);
+  try {
+    pendding.value = true;
+    const response = await makeChatCompletionStream(messageList.value);
+    // sending completion request
+    // const response = await makeChatCompletion({
+    //   model: 'gpt-3.5-turbo',
+    //   messages: messages
+    // });
+
+
+    const { body, status } = response;
+    if ( status !== 200 ) {
+      throw new GPTError(status);
+    }
+
+    messageList.value.push({
+      role: 'assistant',
+      content: ''
+    });
+
+    if ( body ) {
+      const reader = body.getReader();
+      await readerStream(reader);
+    }
+  } catch (err: any) {
+    openNotification(err.message);
+  } finally {
+    pendding.value = false;
+  }
 }
 
+const openNotification = (notification_message: string) => {
+  notification['error']({
+    message: 'Error!',
+    description: notification_message
+  });
+};
+
+// auto scrolling when component is updated
 onUpdated(() => {
   handleScrollBottom();
 })
@@ -79,31 +113,81 @@ const handleScrollBottom = () => {
   })
 }
 
+// canceling request 
+// TODO
 const cancelChatCompletionRequest = () => {
   console.log('canceling chat completion');
 }
 
 // Chat completion request implement
-const makeChatCompletion = (data: ChatRequest) => {
-  return chatRequest<ChatRequest, ChatResponse>({
-    url: '/chat/completions',
-    method: 'POST',
-    data,
-    interceptors: {
-      requestInterceptors(res: GPTRequestConfig) {
-        console.log('interface request interceptor');
-        pendding.value = true
-        return res;
-      },
-      responseInterceptors(result) {
-        console.log('interface response interceptor');
-        pendding.value = false
-        // handleScrollBottom()
-        return result;
-      }
+// const makeChatCompletion = (data: ChatRequest) => {
+//   return chatRequest<ChatRequest, Response>({
+//     url: '/chat/completions',
+//     method: 'POST',
+//     responseType: response_type,
+//     data,
+//     interceptors: {
+//       requestInterceptors(res: GPTRequestConfig) {
+//         console.log('interface request interceptor');
+//         pendding.value = true
+//         return res;
+//       },
+//       responseInterceptors(result: any) {
+//         console.log('interface response interceptor');
+//         pendding.value = false;
+
+//         // console.log(result instanceof Response);
+//         if (result.response) {
+//           // handlingExceptions(result);
+//           throw new GPTError(result.response.status);
+//         }
+//         handleScrollBottom()
+//         return result;
+//       }
+//     }
+//   });
+// }
+
+const readerStream = async (
+  reader: ReadableStreamDefaultReader<Uint8Array>
+) => {
+  let partial_line = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    const decoded_text = decoder.decode(value, { stream: true });
+    
+    const chunk = partial_line + decoded_text;
+    
+    const new_line = chunk.split(/\r?\n/);
+
+    partial_line = new_line.pop() ?? '';
+
+    for (const line of new_line) {
+      if (line.length === 0) continue;
+      if (line.startsWith(':')) continue;
+      if (line === 'data: [DONE]') return;
+
+      // console.log(line);
+      const json = JSON.parse(line.substring(6));
+      const content = json.choices[0].delta.content ?? '';
+      messageList.value[messageList.value.length - 1].content += content;
     }
-  })
+  }
 }
+
+// const handlingExceptions = (result: any) => {
+  // console.log(result.response)
+
+  // handling status that is not 200
+  // if (result.response.status !== 200) {
+  //   const err_info = result.response.data.error;
+  //   console.log(err_info);
+  //   throw Error(err_info.code);
+  // }
+// }
 
 </script>
 

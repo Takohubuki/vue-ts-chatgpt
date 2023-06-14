@@ -1,4 +1,4 @@
-import { ChatMessage, ChatResponse, GPTRequestConfig } from '../types';
+import { ChatMessage, GPTResponse, GPTRequestConfig } from '../types';
 import GPTRequest from './http';
 
 const apiKey = import.meta.env.VITE_OPEN_API_KEY
@@ -10,15 +10,16 @@ export async function makeChatCompletionStream(messageList: ChatMessage[]) {
             method: 'post',
             headers: {
                 'Content-type': 'application/json',
+                // Authorization: `Bearer aiwefjwaeoifh`
                 Authorization: `Bearer ${apiKey}`
             },
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
-                // stream: true,
+                stream: true,
                 messages: messageList
             })
         });
-        console.log(response);
+        // console.log(response);
         return response;
     } catch (error) {
         throw error;
@@ -45,7 +46,7 @@ const request = new GPTRequest({
         }
     }
 })
-const ChatRequest = <D, T = ChatResponse> (config: ChatRequestConfig<D>) => {
+const ChatRequest = <D, T = GPTResponse> (config: ChatRequestConfig<D>) => {
     const { method = 'POST'} = config;
     if (method === 'get' || method === 'GET') {
         config.params = config.data
