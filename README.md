@@ -11,3 +11,4 @@
 - <del>error information<del>
 - setting bar(hyperparameters, open ai apikey)
 - pendding status animel
+- using node server to send requests to openai API
