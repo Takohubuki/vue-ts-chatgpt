@@ -6,7 +6,7 @@ const apiKey = import.meta.env.VITE_OPEN_API_KEY
 export async function makeChatCompletionStream(messageList: ChatMessage[]) {
     console.log('sending requests!');
     try {
-        const response = await fetch('http://localhost:3000/', {
+        const response = await fetch('http://www.tako1224.top:3000/', {
             method: 'post',
             headers: {
                 'Content-type': 'application/json',
