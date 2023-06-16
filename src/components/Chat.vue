@@ -171,7 +171,7 @@ const readerStream = async (
       if (line.startsWith(':')) continue;
       if (line === 'data: [DONE]') return;
 
-      // console.log(line);
+      console.log(line);
       const json = JSON.parse(line.substring(6));
       const content = json.choices[0].delta.content ?? '';
       messageList.value[messageList.value.length - 1].content += content;
