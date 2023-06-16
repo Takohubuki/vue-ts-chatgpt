@@ -5,10 +5,11 @@
 - <del>expend the chat box to the size of whole screen<del>
 - <del>auto scrolling<del>
 - <del>markdown output<del>
-- delete or new chat
-- prompts
 - <del>streaming response<del>
 - <del>error information<del>
+- <del>using node server to send requests to openai API<del>
 - setting bar(hyperparameters, open ai apikey)
-- pendding status animel
-- using node server to send requests to openai API
+- pendding status animel //no need
+- delete or new chat
+- prompts
+- math input and output
