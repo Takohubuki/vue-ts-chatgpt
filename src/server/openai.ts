@@ -17,7 +17,7 @@ export async function makeChatCompletionStream(messageList: ChatMessage[]) {
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
                 stream: true,
-                uri: '/chat/completions/',
+                uri: '/chat/completions',
                 messages: messageList
             })
         });

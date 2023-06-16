@@ -65,12 +65,6 @@ const addMessage = async () => {
   try {
     pendding.value = true;
     const response = await makeChatCompletionStream(messageList.value);
-    // sending completion request
-    // const response = await makeChatCompletion({
-    //   model: 'gpt-3.5-turbo',
-    //   messages: messages
-    // });
-
 
     const { body, status } = response;
     if ( status !== 200 ) {
@@ -120,35 +114,6 @@ const cancelChatCompletionRequest = () => {
   console.log('canceling chat completion');
 }
 
-// Chat completion request implement
-// const makeChatCompletion = (data: ChatRequest) => {
-//   return chatRequest<ChatRequest, Response>({
-//     url: '/chat/completions',
-//     method: 'POST',
-//     responseType: response_type,
-//     data,
-//     interceptors: {
-//       requestInterceptors(res: GPTRequestConfig) {
-//         console.log('interface request interceptor');
-//         pendding.value = true
-//         return res;
-//       },
-//       responseInterceptors(result: any) {
-//         console.log('interface response interceptor');
-//         pendding.value = false;
-
-//         // console.log(result instanceof Response);
-//         if (result.response) {
-//           // handlingExceptions(result);
-//           throw new GPTError(result.response.status);
-//         }
-//         handleScrollBottom()
-//         return result;
-//       }
-//     }
-//   });
-// }
-
 const readerStream = async (
   reader: ReadableStreamDefaultReader<Uint8Array>
 ) => {
@@ -159,8 +124,10 @@ const readerStream = async (
     if (done) break;
 
     const decoded_text = decoder.decode(value, { stream: true });
+    // console.log(`decoded: ${decoded_text}`);
     
     const chunk = partial_line + decoded_text;
+    // console.log(`chunk: ${chunk}`);
     
     const new_line = chunk.split(/\r?\n/);
 
@@ -178,17 +145,6 @@ const readerStream = async (
     }
   }
 }
-
-// const handlingExceptions = (result: any) => {
-  // console.log(result.response)
-
-  // handling status that is not 200
-  // if (result.response.status !== 200) {
-  //   const err_info = result.response.data.error;
-  //   console.log(err_info);
-  //   throw Error(err_info.code);
-  // }
-// }
 
 </script>
 
