@@ -6,20 +6,21 @@ const apiKey = import.meta.env.VITE_OPEN_API_KEY
 export async function makeChatCompletionStream(messageList: ChatMessage[]) {
     console.log('sending requests!');
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://www.tako1224.top:3000/', {
             method: 'post',
             headers: {
                 'Content-type': 'application/json',
                 // Authorization: `Bearer aiwefjwaeoifh`
                 Authorization: `Bearer ${apiKey}`
             },
+            mode: 'cors',
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
                 stream: true,
+                uri: '/chat/completions',
                 messages: messageList
             })
         });
-        // console.log(response);
         return response;
     } catch (error) {
         throw error;
