@@ -15,9 +15,15 @@
       </div>
     </div>
     <div class="chat-input">
-      <input type="text" v-model="message" placeholder="Ask something">
+      <textarea 
+        class="autosizing-input"
+        ref="textAreaRef"
+        v-model="message" 
+        rows="1"
+      ></textarea>
+      <!-- <input type="text" v-model="message" placeholder="Ask something"> -->
       <button v-if="pendding" @click="cancelChatCompletionRequest">Cancel</button>
-      <button v-else @click="addMessage" @keypress.enter="addMessage">Send</button>
+      <button v-else @click="addMessage">Send</button>
     </div>
   </div>
 </div>
@@ -25,11 +31,10 @@
 
 <script setup lang="ts">
 import { makeChatCompletionStream } from '../server/openai';
-import { nextTick, onUpdated, ref } from 'vue';
+import { watch, nextTick, onMounted, onUpdated, ref } from 'vue';
 import { md } from '../server/markdown';
 import type { ChatMessage } from '../types';
 import { notification } from 'ant-design-vue';
-import { GPTError } from '../types';
 
 
 const decoder = new TextDecoder('utf-8');
@@ -43,14 +48,42 @@ const messages: ChatMessage[] = [
 const messageList = ref<ChatMessage[]>(messages)
 const message = ref('')
 
+const maxRow = 5;
+const textAreaRef = ref<HTMLTextAreaElement>(null);
+
+const adjustTextareaSize = () => {
+  let textarea = textAreaRef.value;
+  textarea.style.height = 'auto';
+  textarea.style.maxHeight = maxRow * 24 + 'px';
+
+  const height = textarea.scrollHeight;
+
+  if (height) {
+    textarea.style.height = height + 'px';
+    const rowsNum = Math.round(height / 24);
+    textarea.style.overflowY = rowsNum > maxRow ? 'scroll' : 'hidden';
+  }
+}
+
+onMounted(() => {
+  nextTick(adjustTextareaSize);
+})
+
+watch(message, () => {
+  nextTick(adjustTextareaSize);
+})
+
 // add enter event to button
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
+  if (e.shiftKey && e.key === 'Enter') {
+    e.preventDefault();
     addMessage();
   }
 })
 // button event
 const addMessage = async () => {
+  console.log(message.value);
+  
   if (message.value !== '') {
     // adding new messages to message list
     messageList.value.push({
@@ -80,7 +113,6 @@ const addMessage = async () => {
       const reader = body.getReader();
       await readerStream(reader);
     }
-    pendding.value = false;
   } catch (err: any) {
     openNotification(err.message);
   } finally {
@@ -114,6 +146,9 @@ const cancelChatCompletionRequest = () => {
   console.log('canceling chat completion');
 }
 
+/* 
+Read the stream response from server
+**/
 const readerStream = async (
   reader: ReadableStreamDefaultReader<Uint8Array>
 ) => {
@@ -138,7 +173,7 @@ const readerStream = async (
       if (line.startsWith(':')) continue;
       if (line === 'data: [DONE]') return;
 
-      console.log(line);
+      // console.log(line);
       const json = JSON.parse(line.substring(6));
       const content = json.choices[0].delta.content ?? '';
       messageList.value[messageList.value.length - 1].content += content;
@@ -195,6 +230,16 @@ const readerStream = async (
   background-color: #f1f0f0;
 
   input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    margin-right: 10px;
+  }
+
+  textarea {
+    resize: none;
+    overflow: hidden;
     flex: 1;
     padding: 10px;
     border: none;
