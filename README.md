@@ -8,6 +8,7 @@
 - <del>streaming response<del>
 - <del>error information<del>
 - <del>using node server to send requests to openai API<del>
+- improve user input(multiline input) // multiline input complete
 - setting bar(hyperparameters, open ai apikey)
 - pendding status animel //no need
 - delete or new chat
